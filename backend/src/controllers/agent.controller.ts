@@ -1,79 +1,38 @@
 import { Request, Response } from 'express';
-import { readFileSync, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import { join } from 'path';
-import { ApiResponse } from '../types';
 
-/**
- * Tải file Agent Launcher
- */
-export async function downloadAgentLauncher(
-  req: Request,
-  res: Response
-): Promise<void> {
+export async function downloadAgentLauncher(req: Request, res: Response) {
   try {
-    // Thử nhiều đường dẫn có thể
-    const possiblePaths = [
-      join(process.cwd(), 'agent/QuetThongTin.bat'),
-      join(process.cwd(), '../agent/QuetThongTin.bat'),
-      join(__dirname, '../../../agent/QuetThongTin.bat'),
-      join(__dirname, '../../../../agent/QuetThongTin.bat'),
-    ];
+    // CÁCH MỚI: Dùng process.cwd() để lấy thư mục gốc của Backend
+    // Nó sẽ trỏ về: E:\DEVcodon\Projects\Quanlymaytinh\backend
+    const rootDir = process.cwd();
     
-    let launcherPath: string | null = null;
-    for (const path of possiblePaths) {
-      if (existsSync(path)) {
-        launcherPath = path;
-        break;
-      }
-    }
+    // Đường dẫn file mong muốn: backend/public/CongCuQuetThongTin.exe
+    const filePath = join(rootDir, 'public', 'CongCuQuetThongTin.exe');
     
-    if (!launcherPath) {
-      console.error('Không tìm thấy file launcher. Đã thử các đường dẫn:', possiblePaths);
-      res.status(404).json({
-        success: false,
-        error: 'Không tìm thấy file agent launcher. Vui lòng liên hệ Admin.',
+    // In ra log để kiểm tra (Quan trọng)
+    console.log('------------------------------------------------');
+    console.log('📂 Thư mục gốc (CWD):', rootDir);
+    console.log('🔍 Đang tìm file tại:', filePath);
+    console.log('------------------------------------------------');
+
+    if (!existsSync(filePath)) {
+      console.error('❌ KẾT QUẢ: Không tìm thấy file!');
+      return res.status(404).json({ 
+        error: `Không tìm thấy file tại server. Đường dẫn: ${filePath}` 
       });
-      return;
     }
     
-    // Đọc file
-    const fileContent = readFileSync(launcherPath);
+    console.log('✅ KẾT QUẢ: Đã thấy file! Đang gửi...');
+    res.download(filePath, 'CongCuQuetThongTin.exe');
     
-    // Set headers để download file
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', 'attachment; filename="QuetThongTin.bat"');
-    res.setHeader('Content-Length', fileContent.length.toString());
-    
-    res.send(fileContent);
   } catch (error) {
-    console.error('Download agent launcher error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Lỗi khi tải file agent launcher',
-    });
+    console.error('Download error:', error);
+    res.status(500).json({ error: 'Lỗi server khi tải file.' });
   }
 }
 
-/**
- * Serve thư mục agent (static files)
- */
-export function getAgentInfo(
-  req: Request,
-  res: Response<ApiResponse>
-): Promise<void> {
-  return Promise.resolve(
-    res.json({
-      success: true,
-      data: {
-        downloadUrl: '/api/agent/download',
-        instructions: [
-          '1. Nhấn nút "Tải Agent Launcher"',
-          '2. Chạy file vừa tải về',
-          '3. Agent sẽ tự động khởi động',
-          '4. Quay lại đây và bấm "Quét thông tin"',
-        ],
-      },
-    })
-  );
+export function getAgentInfo(req: Request, res: Response) {
+    res.json({ success: true, message: "Agent API Ready" });
 }
-

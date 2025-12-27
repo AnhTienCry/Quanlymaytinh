@@ -59,14 +59,15 @@ export async function login(
       .query('UPDATE Users SET LastLogin = SYSUTCDATETIME() WHERE UserId = @userId');
 
     // Tạo JWT token
+    // FIX LỖI TS2769: Ép kiểu secret thành string và expiresIn cho đúng định dạng
     const token = jwt.sign(
       {
         userId: user.UserId,
         username: user.Username,
         role: user.Role,
       },
-      jwtConfig.secret,
-      { expiresIn: jwtConfig.expiresIn }
+      (jwtConfig.secret as string), 
+      { expiresIn: jwtConfig.expiresIn as any } 
     );
 
     res.json({
@@ -98,6 +99,7 @@ export async function register(
   res: Response<ApiResponse<AuthResponse>>
 ): Promise<void> {
   try {
+    // Lưu ý: tenNguoiDung đang lấy ra nhưng chưa dùng trong câu INSERT dưới
     const { username, password, tenNguoiDung } = req.body;
 
     if (!username || !password) {
@@ -141,6 +143,7 @@ export async function register(
       .input('username', sql.NVarChar, username)
       .input('passwordHash', sql.NVarChar, passwordHash)
       .input('role', sql.NVarChar, 'user')
+      // Nếu muốn lưu TenNguoiDung, hãy thêm vào câu lệnh INSERT ở đây
       .query(`
         INSERT INTO Users (Username, PasswordHash, Role, IsActive) 
         OUTPUT INSERTED.UserId, INSERTED.Username, INSERTED.Role
@@ -150,14 +153,15 @@ export async function register(
     const newUser = insertResult.recordset[0];
 
     // Tạo JWT token
+    // FIX LỖI TS2769
     const token = jwt.sign(
       {
         userId: newUser.UserId,
         username: newUser.Username,
         role: newUser.Role,
       },
-      jwtConfig.secret,
-      { expiresIn: jwtConfig.expiresIn }
+      (jwtConfig.secret as string),
+      { expiresIn: jwtConfig.expiresIn as any }
     );
 
     res.status(201).json({
@@ -266,6 +270,3 @@ export async function seedDefaultAdmin(): Promise<void> {
     console.error('❌ Lỗi seed admin:', error);
   }
 }
-
-
-

@@ -5,12 +5,23 @@ import dotenv from 'dotenv';
 import routes from './routes';
 import { getConnection } from './config/database';
 import { seedDefaultAdmin } from './controllers/auth.controller';
+import path from 'path';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+
+// --- BẮT ĐẦU ĐOẠN CODE DEBUG ---
+const publicPath = path.join(process.cwd(), 'public');
+
+
+
+// Mở thư mục public ra thành static
+app.use('/downloads', express.static(publicPath));
+// --- KẾT THÚC ĐOẠN CODE DEBUG ---
 
 // Middleware
 app.use(helmet());
