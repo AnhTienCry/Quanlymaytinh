@@ -9,6 +9,7 @@ import { Card, Button, Input, App } from 'antd';
 import useSystemInfo from '../hooks/useSystemInfo';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { getBackendBaseUrl } from '../services/api';
 
 export const UserHomePage: React.FC = () => {
   const { message } = App.useApp();
@@ -36,12 +37,17 @@ export const UserHomePage: React.FC = () => {
     // 1. Nếu chưa có tool -> Tải về
     if (agentStatus === 'offline' || agentStatus === 'unknown') {
       try {
-        const currentHost = window.location.hostname;
-        const downloadUrl = `http://${currentHost}:3000/downloads/CongCuQuetThongTin.exe`;
+        // Sử dụng helper function để lấy đúng backend URL (hỗ trợ tunnel)
+        const backendBaseUrl = getBackendBaseUrl();
+        const downloadUrl = `${backendBaseUrl}/downloads/CongCuQuetThongTin.exe`;
+        console.log('📥 Download URL:', downloadUrl);
         window.open(downloadUrl, '_self');
         setWaitingForUser(true);
         message.info({ content: 'Đang tải công cụ... Mở file lên để tự động quét!', duration: 5 });
-      } catch { message.error('Lỗi tải file'); }
+      } catch (err) {
+        console.error('Download error:', err);
+        message.error('Lỗi tải file');
+      }
       return;
     }
     

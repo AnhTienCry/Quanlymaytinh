@@ -219,4 +219,4 @@ PowerShell script để quét thông tin phần cứng máy tính:
 
 ## 📄 License
 
-MIT License © 2024
+MIT License © 2025

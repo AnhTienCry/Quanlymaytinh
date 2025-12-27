@@ -38,6 +38,14 @@ export default defineConfig({
     port: 5173,
     host: '0.0.0.0', // Cho phép truy cập từ IP khác trong mạng LAN
     https: getHttpsConfig(), // Tự động dùng HTTPS nếu có cert, nếu không thì HTTP
+    strictPort: false,
+    // Cho phép tất cả subdomain của trycloudflare.com cho Cloudflare Tunnel
+    // Pattern này sẽ match bất kỳ subdomain nào của trycloudflare.com
+    allowedHosts: [
+      '.trycloudflare.com', // Cho phép tất cả subdomain (wildcard)
+      'localhost',
+      '127.0.0.1',
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

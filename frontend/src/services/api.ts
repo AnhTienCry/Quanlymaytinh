@@ -4,19 +4,45 @@ import axios, { AxiosError, AxiosResponse } from 'axios';
 // Nếu truy cập từ localhost, dùng localhost
 // Nếu truy cập từ IP khác, dùng IP đó
 function getApiUrl(): string {
-  // Ưu tiên biến môi trường nếu có
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  // Ưu tiên biến môi trường nếu có (dùng cho tunnel hoặc production)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
   }
   
-  // Tự động detect: sử dụng cùng host với frontend nhưng port 3000
+  // Fallback: Tự động detect dựa trên hostname (dùng cho local development)
   const currentHost = window.location.hostname;
+  // Nếu là localhost hoặc 127.0.0.1, dùng localhost
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return 'http://localhost:3000/api';
+  }
+  // Nếu là IP khác, dùng IP đó
   return `http://${currentHost}:3000/api`;
+}
+
+/**
+ * Lấy Base URL của Backend (không có /api)
+ * Dùng cho các static files như downloads
+ */
+export function getBackendBaseUrl(): string {
+  // Nếu có VITE_API_BASE_URL, lấy base URL từ đó (bỏ /api)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    const apiUrl = import.meta.env.VITE_API_BASE_URL;
+    // Nếu kết thúc bằng /api, bỏ nó đi
+    return apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl.replace('/api', '');
+  }
+  
+  // Fallback: Tự động detect dựa trên hostname
+  const currentHost = window.location.hostname;
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return 'http://localhost:3000';
+  }
+  return `http://${currentHost}:3000`;
 }
 
 const API_URL = getApiUrl();
 
 console.log('🔗 API URL:', API_URL);
+console.log('🔗 Backend Base URL:', getBackendBaseUrl());
 
 // Create axios instance
 export const api = axios.create({
@@ -50,6 +76,14 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
+      return Promise.reject(new Error('Phiên đăng nhập đã hết hạn'));
+    }
+    
+    // Network error (không kết nối được server)
+    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+      console.error('❌ Network Error - API URL:', API_URL);
+      console.error('❌ Error details:', error);
+      return Promise.reject(new Error('Không thể kết nối đến server. Vui lòng kiểm tra Backend Tunnel có đang chạy không.'));
     }
     
     const message = error.response?.data?.error 

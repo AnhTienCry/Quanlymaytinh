@@ -89,7 +89,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
           transition={{ delay: 0.6 }}
           className="text-center text-sm text-slate-500 mt-6"
         >
-          Hệ thống Quản lý Máy tính © 2024
+          Hệ thống Quản lý Máy tính © 2025
         </motion.p>
       </motion.div>
     </div>
