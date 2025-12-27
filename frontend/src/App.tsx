@@ -12,29 +12,7 @@ import {
   WarehousesPage,
 } from './pages';
 import { useAuthStore } from './stores/authStore';
-
-// Protected Route Component
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  requireAdmin?: boolean;
-}
-
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-  children,
-  requireAdmin = false,
-}) => {
-  const { user, token } = useAuthStore();
-
-  if (!token || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (requireAdmin && user.role !== 'admin') {
-    return <Navigate to="/user-home" replace />;
-  }
-
-  return <>{children}</>;
-};
+import { ProtectedRoute, LoadingScreen } from './components/layouts';
 
 // Auth Route - Redirect if already logged in
 const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -46,16 +24,6 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return <>{children}</>;
 };
-
-// Loading Screen
-const LoadingScreen: React.FC = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="text-center">
-      <div className="spinner mx-auto mb-4" />
-      <p className="text-slate-400">Đang tải...</p>
-    </div>
-  </div>
-);
 
 // App Routes Component
 const AppRoutes: React.FC = () => {

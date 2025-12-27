@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import { getConnection, sql } from '../config/database';
-import { jwtConfig } from '../config/jwt';
+import { signToken } from '../config/jwt';
 import { ApiResponse, AuthResponse, LoginRequest, RegisterRequest, User } from '../types';
 
 const SALT_ROUNDS = 10;
@@ -58,17 +57,15 @@ export async function login(
       .input('userId', sql.Int, user.UserId)
       .query('UPDATE Users SET LastLogin = SYSUTCDATETIME() WHERE UserId = @userId');
 
+    // Normalize role to lowercase
+    const normalizedRole = (user.Role ? user.Role.toLowerCase() : 'user') as 'admin' | 'user';
+
     // Tạo JWT token
-    // FIX LỖI TS2769: Ép kiểu secret thành string và expiresIn cho đúng định dạng
-    const token = jwt.sign(
-      {
-        userId: user.UserId,
-        username: user.Username,
-        role: user.Role,
-      },
-      (jwtConfig.secret as string), 
-      { expiresIn: jwtConfig.expiresIn as any } 
-    );
+    const token = signToken({
+      userId: user.UserId,
+      username: user.Username,
+      role: normalizedRole,
+    });
 
     res.json({
       success: true,
@@ -78,7 +75,7 @@ export async function login(
         user: {
           userId: user.UserId,
           username: user.Username,
-          role: user.Role,
+          role: normalizedRole,
         },
       },
     });
@@ -99,8 +96,7 @@ export async function register(
   res: Response<ApiResponse<AuthResponse>>
 ): Promise<void> {
   try {
-    // Lưu ý: tenNguoiDung đang lấy ra nhưng chưa dùng trong câu INSERT dưới
-    const { username, password, tenNguoiDung } = req.body;
+    const { username, password } = req.body;
 
     if (!username || !password) {
       res.status(400).json({
@@ -152,17 +148,15 @@ export async function register(
 
     const newUser = insertResult.recordset[0];
 
+    // Normalize role to lowercase
+    const normalizedRole = (newUser.Role ? newUser.Role.toLowerCase() : 'user') as 'admin' | 'user';
+
     // Tạo JWT token
-    // FIX LỖI TS2769
-    const token = jwt.sign(
-      {
-        userId: newUser.UserId,
-        username: newUser.Username,
-        role: newUser.Role,
-      },
-      (jwtConfig.secret as string),
-      { expiresIn: jwtConfig.expiresIn as any }
-    );
+    const token = signToken({
+      userId: newUser.UserId,
+      username: newUser.Username,
+      role: normalizedRole,
+    });
 
     res.status(201).json({
       success: true,
@@ -172,7 +166,7 @@ export async function register(
         user: {
           userId: newUser.UserId,
           username: newUser.Username,
-          role: newUser.Role,
+          role: normalizedRole,
         },
       },
     });
@@ -221,9 +215,15 @@ export async function getMe(
       return;
     }
 
+    // Normalize role to lowercase và trả về đúng format AuthUser
+    const normalizedRole = (user.Role ? user.Role.toLowerCase() : 'user') as 'admin' | 'user';
     res.json({
       success: true,
-      data: user,
+      data: {
+        userId: user.UserId,
+        username: user.Username,
+        role: normalizedRole,
+      },
     });
   } catch (error) {
     console.error('GetMe error:', error);

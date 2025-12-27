@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { authApi, AuthUser, LoginRequest, RegisterRequest } from '../services/api';
+import { authApi, AuthUser, LoginRequest, RegisterRequest, normalizeRole } from '../services/api';
 
 interface AuthState {
   user: AuthUser | null;
@@ -32,11 +32,17 @@ export const useAuthStore = create<AuthState>()(
           if (response.data.success && response.data.data) {
             const { token, user } = response.data.data;
             
+            // Normalize role to ensure consistency
+            const normalizedUser = {
+              ...user,
+              role: normalizeRole(user.role),
+            };
+            
             // Save token to localStorage for axios interceptor
             localStorage.setItem('token', token);
             
             set({
-              user,
+              user: normalizedUser,
               token,
               isLoading: false,
               error: null,
@@ -65,10 +71,16 @@ export const useAuthStore = create<AuthState>()(
           if (response.data.success && response.data.data) {
             const { token, user } = response.data.data;
             
+            // Normalize role to ensure consistency
+            const normalizedUser = {
+              ...user,
+              role: normalizeRole(user.role),
+            };
+            
             localStorage.setItem('token', token);
             
             set({
-              user,
+              user: normalizedUser,
               token,
               isLoading: false,
               error: null,
@@ -110,7 +122,13 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.getMe();
           
           if (response.data.success && response.data.data) {
-            set({ user: response.data.data as AuthUser, token });
+            // Normalize role from API response
+            const apiUser = response.data.data;
+            const normalizedUser: AuthUser = {
+              ...apiUser,
+              role: normalizeRole(apiUser.role || (apiUser as any).Role),
+            };
+            set({ user: normalizedUser, token });
             return true;
           }
           

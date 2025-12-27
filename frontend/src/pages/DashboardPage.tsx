@@ -1,4 +1,9 @@
-import React, { useEffect, useState } from 'react';
+/**
+ * Dashboard Page - Admin Overview
+ * Refactored with useApi hook for better code organization
+ */
+
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   DesktopOutlined,
@@ -11,6 +16,7 @@ import { MainLayout } from '../components/layouts';
 import { StatCard, Card, Table, Badge, Button } from '../components/ui';
 import { dashboardApi, DashboardStats } from '../services/api';
 import { useMessage } from '../hooks/useMessage';
+import { useApi } from '../hooks/useApi';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
@@ -20,27 +26,18 @@ dayjs.locale('vi');
 
 export const DashboardPage: React.FC = () => {
   const message = useMessage();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchStats = async () => {
-    setLoading(true);
-    try {
-      const response = await dashboardApi.getStats();
-      if (response.data.success && response.data.data) {
-        setStats(response.data.data);
-      }
-    } catch (error) {
-      message.error('Không thể tải dữ liệu dashboard');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: stats, loading, error, execute: fetchStats } = useApi<DashboardStats>();
 
   useEffect(() => {
-    fetchStats();
-  }, []);
+    fetchStats(() => dashboardApi.getStats());
+  }, [fetchStats]);
+
+  // Show error message if API call failed
+  useEffect(() => {
+    if (error) {
+      message.error(error);
+    }
+  }, [error, message]);
 
   const getStatusBadge = (status: string) => {
     const statusMap: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
@@ -75,115 +72,143 @@ export const DashboardPage: React.FC = () => {
     },
   ];
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 },
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
             <p className="text-slate-400">Tổng quan hệ thống quản lý máy tính</p>
-          </motion.div>
+          </div>
           <Button
             variant="outline"
-            onClick={fetchStats}
+            onClick={() => fetchStats(() => dashboardApi.getStats())}
             loading={loading}
             icon={<ReloadOutlined />}
             size="sm"
           >
             Làm mới
           </Button>
-        </div>
-
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-        >
-          <StatCard
-            icon={<DesktopOutlined className="text-2xl" />}
-            value={loading ? '...' : stats?.totalComputers || 0}
-            label="Tổng máy tính"
-            className="animate-fade-in stagger-1"
-          />
-          <StatCard
-            icon={<TeamOutlined className="text-2xl" />}
-            value={loading ? '...' : stats?.totalUsers || 0}
-            label="Người dùng"
-            className="animate-fade-in stagger-2"
-          />
-          <StatCard
-            icon={<DatabaseOutlined className="text-2xl" />}
-            value={loading ? '...' : stats?.totalWarehouses || 0}
-            label="Kho"
-            className="animate-fade-in stagger-3"
-          />
-          <StatCard
-            icon={<ClockCircleOutlined className="text-2xl" />}
-            value={loading ? '...' : stats?.recentScans?.length || 0}
-            label="Quét gần đây"
-            className="animate-fade-in stagger-4"
-          />
         </motion.div>
 
-        {/* Status Distribution */}
-        {stats?.computersByStatus && stats.computersByStatus.length > 0 && (
+        {/* Stats Cards */}
+        {loading && !stats ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="animate-pulse">
+                <div className="h-24 bg-slate-700/50 rounded-xl" />
+              </Card>
+            ))}
+          </div>
+        ) : stats ? (
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+          >
+            <motion.div variants={itemVariants}>
+              <StatCard
+                icon={<DesktopOutlined />}
+                label="Tổng máy tính"
+                value={stats.totalComputers}
+                color="blue"
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <StatCard
+                icon={<TeamOutlined />}
+                label="Tổng người dùng"
+                value={stats.totalUsers}
+                color="teal"
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <StatCard
+                icon={<DatabaseOutlined />}
+                label="Tổng kho"
+                value={stats.totalWarehouses}
+                color="purple"
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <StatCard
+                icon={<ClockCircleOutlined />}
+                label="Quét gần đây"
+                value={stats.recentScans.length}
+                color="orange"
+              />
+            </motion.div>
+          </motion.div>
+        ) : null}
+
+        {/* Recent Scans */}
+        {stats && stats.recentScans.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.3 }}
           >
             <Card>
-              <h2 className="text-lg font-semibold text-white mb-4">
-                Phân bố theo trạng thái
-              </h2>
-              <div className="flex flex-wrap gap-4">
+              <h2 className="text-xl font-semibold text-white mb-4">Quét gần đây</h2>
+              <Table
+                data={stats.recentScans}
+                columns={recentScanColumns}
+                emptyText="Chưa có dữ liệu quét"
+              />
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Computers by Status */}
+        {stats && stats.computersByStatus.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card>
+              <h2 className="text-xl font-semibold text-white mb-4">Máy tính theo trạng thái</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {stats.computersByStatus.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50"
+                  <motion.div
+                    key={item.status}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                    className="p-4 rounded-xl bg-slate-800/50 border border-slate-700/50"
                   >
-                    {getStatusBadge(item.status || 'Không xác định')}
-                    <span className="text-white font-semibold">{item.count}</span>
-                  </div>
+                    <div className="flex items-center justify-between mb-2">
+                      {getStatusBadge(item.status)}
+                    </div>
+                    <p className="text-2xl font-bold text-white">{item.count}</p>
+                  </motion.div>
                 ))}
               </div>
             </Card>
           </motion.div>
         )}
-
-        {/* Recent Scans */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card padding="none">
-            <div className="p-4 border-b border-slate-700/50">
-              <h2 className="text-lg font-semibold text-white">
-                Lịch sử quét gần đây
-              </h2>
-            </div>
-            <Table
-              columns={recentScanColumns}
-              data={stats?.recentScans || []}
-              loading={loading}
-              rowKey="Id"
-              emptyText="Chưa có lịch sử quét nào"
-            />
-          </Card>
-        </motion.div>
       </div>
     </MainLayout>
   );
 };
-
-export default DashboardPage;
-
-
-

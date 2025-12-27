@@ -10,7 +10,7 @@ import { authenticateToken, requireAdmin } from '../middleware/auth.middleware';
 const router = Router();
 
 // GET /api/warehouses - Lấy danh sách kho
-router.get('/', authenticateToken, getAllWarehouses);
+router.get('/', authenticateToken, requireAdmin, getAllWarehouses);
 
 // POST /api/warehouses - Thêm kho (Admin)
 router.post('/', authenticateToken, requireAdmin, createWarehouse);

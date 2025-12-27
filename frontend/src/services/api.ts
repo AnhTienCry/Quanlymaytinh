@@ -87,6 +87,13 @@ export interface AuthUser {
   role: 'admin' | 'user';
 }
 
+// Helper to normalize role from API response (database might return 'Admin' instead of 'admin')
+export function normalizeRole(role: string | undefined | null): 'admin' | 'user' {
+  if (!role) return 'user';
+  const normalized = role.toLowerCase().trim();
+  return normalized === 'admin' ? 'admin' : 'user';
+}
+
 export interface AuthResponse {
   token: string;
   user: AuthUser;

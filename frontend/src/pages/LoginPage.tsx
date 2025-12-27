@@ -112,12 +112,7 @@ export const LoginPage: React.FC = () => {
           </p>
         </div>
 
-        {/* Demo credentials hint */}
-        <div className="mt-4 p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
-          <p className="text-xs text-slate-400 text-center">
-            <span className="text-blue-400">💡 Admin:</span> admin / admin123
-          </p>
-        </div>
+
       </form>
     </AuthLayout>
   );

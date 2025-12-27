@@ -189,33 +189,77 @@ export async function updateComputer(
     const updateData = req.body;
     const pool = await getConnection();
 
-    await pool.request()
-      .input('id', sql.Int, parseInt(id))
-      .input('maTS', sql.NVarChar, updateData.MaTS)
-      .input('tenMT', sql.NVarChar, updateData.TenMT)
-      .input('model', sql.NVarChar, updateData.Model)
-      .input('hang', sql.NVarChar, updateData.Hang)
-      .input('cpu', sql.NVarChar, updateData.CPU)
-      .input('ram', sql.NVarChar, updateData.RAM)
-      .input('ssd', sql.NVarChar, updateData.SSD)
-      .input('vga', sql.NVarChar, updateData.VGA)
-      .input('trangThai', sql.NVarChar, updateData.TrangThai)
-      .input('maKho', sql.Int, updateData.MaKho)
-      .input('tinhTrang', sql.NVarChar, updateData.TinhTrang)
-      .input('deXuat', sql.NVarChar, updateData.DeXuat)
-      .input('tenNguoiDung', sql.NVarChar, updateData.TenNguoiDung)
-      .query(`
-        UPDATE MayTinh SET
-          MaTS = @maTS, TenMT = @tenMT, Model = @model, Hang = @hang,
-          CPU = @cpu, RAM = @ram, SSD = @ssd, VGA = @vga,
-          TrangThai = @trangThai, MaKho = @maKho,
-          TinhTrang = @tinhTrang, DeXuat = @deXuat, TenNguoiDung = @tenNguoiDung,
-          NgayCapNhat = SYSUTCDATETIME()
-        WHERE MaMT = @id
-      `);
+    // Chỉ update những field được gửi lên (không overwrite các field khác)
+    const updateFields: string[] = [];
+    const request = pool.request().input('id', sql.Int, parseInt(id));
+
+    if (updateData.MaTS !== undefined) {
+      request.input('maTS', sql.NVarChar, updateData.MaTS);
+      updateFields.push('MaTS = @maTS');
+    }
+    if (updateData.TenMT !== undefined) {
+      request.input('tenMT', sql.NVarChar, updateData.TenMT);
+      updateFields.push('TenMT = @tenMT');
+    }
+    if (updateData.Model !== undefined) {
+      request.input('model', sql.NVarChar, updateData.Model);
+      updateFields.push('Model = @model');
+    }
+    if (updateData.Hang !== undefined) {
+      request.input('hang', sql.NVarChar, updateData.Hang);
+      updateFields.push('Hang = @hang');
+    }
+    if (updateData.CPU !== undefined) {
+      request.input('cpu', sql.NVarChar, updateData.CPU);
+      updateFields.push('CPU = @cpu');
+    }
+    if (updateData.RAM !== undefined) {
+      request.input('ram', sql.NVarChar, updateData.RAM);
+      updateFields.push('RAM = @ram');
+    }
+    if (updateData.SSD !== undefined) {
+      request.input('ssd', sql.NVarChar, updateData.SSD);
+      updateFields.push('SSD = @ssd');
+    }
+    if (updateData.VGA !== undefined) {
+      request.input('vga', sql.NVarChar, updateData.VGA);
+      updateFields.push('VGA = @vga');
+    }
+    if (updateData.TrangThai !== undefined) {
+      request.input('trangThai', sql.NVarChar, updateData.TrangThai);
+      updateFields.push('TrangThai = @trangThai');
+    }
+    if (updateData.MaKho !== undefined) {
+      request.input('maKho', sql.Int, updateData.MaKho);
+      updateFields.push('MaKho = @maKho');
+    }
+    if (updateData.TinhTrang !== undefined) {
+      request.input('tinhTrang', sql.NVarChar, updateData.TinhTrang);
+      updateFields.push('TinhTrang = @tinhTrang');
+    }
+    if (updateData.DeXuat !== undefined) {
+      request.input('deXuat', sql.NVarChar, updateData.DeXuat);
+      updateFields.push('DeXuat = @deXuat');
+    }
+    if (updateData.TenNguoiDung !== undefined) {
+      request.input('tenNguoiDung', sql.NVarChar, updateData.TenNguoiDung);
+      updateFields.push('TenNguoiDung = @tenNguoiDung');
+    }
+
+    // Luôn cập nhật NgayCapNhat
+    updateFields.push('NgayCapNhat = SYSUTCDATETIME()');
+
+    if (updateFields.length === 0) {
+      res.status(400).json({ success: false, error: 'Không có dữ liệu để cập nhật' });
+      return;
+    }
+
+    const updateQuery = `UPDATE MayTinh SET ${updateFields.join(', ')} WHERE MaMT = @id`;
+    await request.query(updateQuery);
 
     res.json({ success: true, message: 'Đã cập nhật' });
   } catch (error) {
+    console.error('UpdateComputer error:', error);
     res.status(500).json({ success: false, error: 'Lỗi cập nhật' });
   }
 }

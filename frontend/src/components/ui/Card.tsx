@@ -40,6 +40,7 @@ interface StatCardProps {
   icon: React.ReactNode;
   value: string | number;
   label: string;
+  color?: 'blue' | 'teal' | 'purple' | 'orange' | 'green' | 'red';
   trend?: {
     value: number;
     isUp: boolean;
@@ -51,13 +52,25 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon,
   value,
   label,
+  color = 'blue',
   trend,
   className,
 }) => {
+  const colorClasses = {
+    blue: 'from-blue-500/20 to-blue-600/20 text-blue-400',
+    teal: 'from-teal-500/20 to-teal-600/20 text-teal-400',
+    purple: 'from-purple-500/20 to-purple-600/20 text-purple-400',
+    orange: 'from-orange-500/20 to-orange-600/20 text-orange-400',
+    green: 'from-green-500/20 to-green-600/20 text-green-400',
+    red: 'from-red-500/20 to-red-600/20 text-red-400',
+  };
+
   return (
     <div className={clsx('stat-card', className)}>
       <div className="flex items-start justify-between">
-        <div className="stat-icon">{icon}</div>
+        <div className={clsx('stat-icon bg-gradient-to-br', colorClasses[color])}>
+          {icon}
+        </div>
         {trend && (
           <span
             className={clsx(

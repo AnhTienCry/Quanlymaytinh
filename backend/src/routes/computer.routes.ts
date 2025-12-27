@@ -17,7 +17,7 @@ router.post('/scan', authenticateToken, submitScanData);
 router.get('/', authenticateToken, requireAdmin, getAllComputers);
 
 // GET /api/computers/:id - Lấy thông tin 1 máy tính
-router.get('/:id', authenticateToken, getComputerById);
+router.get('/:id', authenticateToken, requireAdmin, getComputerById);
 
 // PUT /api/computers/:id - Cập nhật máy tính (Admin)
 router.put('/:id', authenticateToken, requireAdmin, updateComputer);
