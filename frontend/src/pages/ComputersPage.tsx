@@ -10,7 +10,7 @@ import {
   FileExcelOutlined,
 } from '@ant-design/icons';
 import { MainLayout } from '../components/layouts';
-import { Card, Button, Input, Table, Badge, Modal } from '../components/ui';
+import { Button, Input, Table, Badge, Modal } from '../components/ui';
 import { computerApi, Computer } from '../services/api';
 import { useMessage } from '../hooks/useMessage';
 import dayjs from 'dayjs';
@@ -246,8 +246,8 @@ export const ComputersPage: React.FC = () => {
           transition={{ delay: 0.2 }}
         >
           <Table
-            columns={columns}
-            data={filteredComputers}
+            columns={columns as unknown as Array<{ key: string; title: string; render?: (value: unknown, record: Record<string, unknown>, index: number) => React.ReactNode; width?: string; align?: 'left' | 'center' | 'right' }>}
+            data={filteredComputers as unknown as Record<string, unknown>[]}
             loading={loading}
             rowKey="MaMT"
             emptyText="Chưa có máy tính nào"

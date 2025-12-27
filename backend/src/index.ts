@@ -14,17 +14,28 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 
-// --- BẮT ĐẦU ĐOẠN CODE DEBUG ---
+// Static files serving - Phải đặt TRƯỚC helmet để không bị chặn
 const publicPath = path.join(process.cwd(), 'public');
-
-
-
-// Mở thư mục public ra thành static
-app.use('/downloads', express.static(publicPath));
-// --- KẾT THÚC ĐOẠN CODE DEBUG ---
+app.use('/downloads', express.static(publicPath, {
+  maxAge: '1d', // Cache 1 ngày
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    // Cho phép download file lớn
+    if (filePath.endsWith('.exe')) {
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', 'attachment; filename="CongCuQuetThongTin.exe"');
+    }
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  },
+}));
 
 // Middleware
-app.use(helmet());
+// Cấu hình helmet để cho phép download files
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false, // Tắt CSP để không chặn downloads
+}));
 app.use(cors({
   origin: true, // Cho phép tất cả origins (để users từ các IP khác truy cập)
   credentials: true,

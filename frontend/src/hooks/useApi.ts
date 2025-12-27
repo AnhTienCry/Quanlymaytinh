@@ -5,7 +5,7 @@
 import { useState, useCallback } from 'react';
 import { AxiosResponse } from 'axios';
 import { ApiResponse } from '../services/api';
-import { extractApiData, extractApiError, safeApiCall } from '../utils/apiHelper';
+import { extractApiData, extractApiError } from '../utils/apiHelper';
 
 interface UseApiReturn<T> {
   data: T | null;

@@ -25,7 +25,7 @@ export const RegisterPage: React.FC = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      navigate(user.role === 'admin' ? '/dashboard' : '/user-home');
+      navigate(user.role === 'admin' ? '/dashboard' : '/tool-intro');
     }
   }, [user, navigate]);
 
@@ -63,7 +63,7 @@ export const RegisterPage: React.FC = () => {
     const success = await register({ username, password });
 
     if (success) {
-      navigate('/user-home');
+      navigate('/tool-intro');
     }
   };
 

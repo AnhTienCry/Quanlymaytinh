@@ -93,6 +93,7 @@ export async function submitScanData(
     const hostname = scanData.hostname || 'Unknown PC';
     const model = scanData.model || '';
     const hang = scanData.manufacturer || '';
+    const namSX = scanData.namSX || null; // Năm sản xuất
     const tenNguoiDung = scanData.tenNguoiDung || null;
     const tinhTrang = scanData.tinhTrang || null;
     const deXuat = scanData.deXuat || null;
@@ -112,13 +113,14 @@ export async function submitScanData(
         .input('serial', sql.NVarChar, scanData.serialNumber)
         .input('model', sql.NVarChar, model)
         .input('hang', sql.NVarChar, hang)
+        .input('namSX', sql.Int, namSX) // Thêm NamSX
         .input('tinhTrang', sql.NVarChar, tinhTrang)
         .input('deXuat', sql.NVarChar, deXuat)
         .input('tenNguoiDung', sql.NVarChar, tenNguoiDung)
         .query(`
           UPDATE MayTinh SET
             TenMT = @tenMT, CPU = @cpu, RAM = @ram, SSD = @ssd, VGA = @vga,
-            IPAddress = @ip, OS = @os, SerialNumber = @serial, Model = @model, Hang = @hang,
+            IPAddress = @ip, OS = @os, SerialNumber = @serial, Model = @model, Hang = @hang, NamSX = @namSX,
             NgayCapNhat = SYSUTCDATETIME(),
             TinhTrang = COALESCE(@tinhTrang, TinhTrang),
             DeXuat = COALESCE(@deXuat, DeXuat),
@@ -139,19 +141,20 @@ export async function submitScanData(
         .input('serial', sql.NVarChar, scanData.serialNumber)
         .input('model', sql.NVarChar, model)
         .input('hang', sql.NVarChar, hang)
+        .input('namSX', sql.Int, namSX) // Thêm NamSX
         .input('tinhTrang', sql.NVarChar, tinhTrang)
         .input('deXuat', sql.NVarChar, deXuat)
         .input('tenNguoiDung', sql.NVarChar, tenNguoiDung)
         .query(`
           INSERT INTO MayTinh (
             TenMT, MAC, CPU, RAM, SSD, VGA, IPAddress, OS, 
-            SerialNumber, Model, Hang, TinhTrang, DeXuat, TenNguoiDung, 
+            SerialNumber, Model, Hang, NamSX, TinhTrang, DeXuat, TenNguoiDung, 
             TrangThai, NgayTao
           )
           OUTPUT INSERTED.MaMT
           VALUES (
             @tenMT, @mac, @cpu, @ram, @ssd, @vga, @ip, @os, 
-            @serial, @model, @hang, @tinhTrang, @deXuat, @tenNguoiDung, 
+            @serial, @model, @hang, @namSX, @tinhTrang, @deXuat, @tenNguoiDung, 
             N'Đang sử dụng', SYSUTCDATETIME()
           )
         `);
@@ -178,10 +181,10 @@ export async function submitScanData(
 }
 
 // ==========================================
-// 4. CẬP NHẬT MÁY TÍNH (ADMIN SỬA TAY)
+// 4. CẬP NHẬT THÔNG TIN MÁY TÍNH (ADMIN)
 // ==========================================
 export async function updateComputer(
-  req: Request<{ id: string }>,
+  req: Request<{ id: string }, ApiResponse, Partial<Computer>>,
   res: Response<ApiResponse>
 ): Promise<void> {
   try {
@@ -189,83 +192,229 @@ export async function updateComputer(
     const updateData = req.body;
     const pool = await getConnection();
 
-    // Chỉ update những field được gửi lên (không overwrite các field khác)
-    const updateFields: string[] = [];
+    const updates: string[] = [];
     const request = pool.request().input('id', sql.Int, parseInt(id));
 
+    // Dynamically add fields to update
     if (updateData.MaTS !== undefined) {
+      updates.push('MaTS = @maTS');
       request.input('maTS', sql.NVarChar, updateData.MaTS);
-      updateFields.push('MaTS = @maTS');
     }
     if (updateData.TenMT !== undefined) {
+      updates.push('TenMT = @tenMT');
       request.input('tenMT', sql.NVarChar, updateData.TenMT);
-      updateFields.push('TenMT = @tenMT');
     }
     if (updateData.Model !== undefined) {
+      updates.push('Model = @model');
       request.input('model', sql.NVarChar, updateData.Model);
-      updateFields.push('Model = @model');
     }
     if (updateData.Hang !== undefined) {
+      updates.push('Hang = @hang');
       request.input('hang', sql.NVarChar, updateData.Hang);
-      updateFields.push('Hang = @hang');
+    }
+    if (updateData.NamSX !== undefined) {
+      updates.push('NamSX = @namSX');
+      request.input('namSX', sql.Int, updateData.NamSX);
     }
     if (updateData.CPU !== undefined) {
+      updates.push('CPU = @cpu');
       request.input('cpu', sql.NVarChar, updateData.CPU);
-      updateFields.push('CPU = @cpu');
     }
     if (updateData.RAM !== undefined) {
+      updates.push('RAM = @ram');
       request.input('ram', sql.NVarChar, updateData.RAM);
-      updateFields.push('RAM = @ram');
     }
     if (updateData.SSD !== undefined) {
+      updates.push('SSD = @ssd');
       request.input('ssd', sql.NVarChar, updateData.SSD);
-      updateFields.push('SSD = @ssd');
     }
     if (updateData.VGA !== undefined) {
+      updates.push('VGA = @vga');
       request.input('vga', sql.NVarChar, updateData.VGA);
-      updateFields.push('VGA = @vga');
     }
-    if (updateData.TrangThai !== undefined) {
-      request.input('trangThai', sql.NVarChar, updateData.TrangThai);
-      updateFields.push('TrangThai = @trangThai');
+    if (updateData.MAC !== undefined) {
+      updates.push('MAC = @mac');
+      request.input('mac', sql.NVarChar, updateData.MAC);
+    }
+    if (updateData.IPAddress !== undefined) {
+      updates.push('IPAddress = @ip');
+      request.input('ip', sql.NVarChar, updateData.IPAddress);
+    }
+    if (updateData.SerialNumber !== undefined) {
+      updates.push('SerialNumber = @serial');
+      request.input('serial', sql.NVarChar, updateData.SerialNumber);
+    }
+    if (updateData.OS !== undefined) {
+      updates.push('OS = @os');
+      request.input('os', sql.NVarChar, updateData.OS);
     }
     if (updateData.MaKho !== undefined) {
+      updates.push('MaKho = @maKho');
       request.input('maKho', sql.Int, updateData.MaKho);
-      updateFields.push('MaKho = @maKho');
     }
+    if (updateData.MaNV_DangDung !== undefined) {
+      updates.push('MaNV_DangDung = @maNV_DangDung');
+      request.input('maNV_DangDung', sql.Int, updateData.MaNV_DangDung);
+    }
+    if (updateData.TrangThai !== undefined) {
+      updates.push('TrangThai = @trangThai');
+      request.input('trangThai', sql.NVarChar, updateData.TrangThai);
+    }
+    // Thêm các trường mới
     if (updateData.TinhTrang !== undefined) {
+      updates.push('TinhTrang = @tinhTrang');
       request.input('tinhTrang', sql.NVarChar, updateData.TinhTrang);
-      updateFields.push('TinhTrang = @tinhTrang');
     }
     if (updateData.DeXuat !== undefined) {
+      updates.push('DeXuat = @deXuat');
       request.input('deXuat', sql.NVarChar, updateData.DeXuat);
-      updateFields.push('DeXuat = @deXuat');
     }
     if (updateData.TenNguoiDung !== undefined) {
+      updates.push('TenNguoiDung = @tenNguoiDung');
       request.input('tenNguoiDung', sql.NVarChar, updateData.TenNguoiDung);
-      updateFields.push('TenNguoiDung = @tenNguoiDung');
     }
 
-    // Luôn cập nhật NgayCapNhat
-    updateFields.push('NgayCapNhat = SYSUTCDATETIME()');
-
-    if (updateFields.length === 0) {
+    if (updates.length === 0) {
       res.status(400).json({ success: false, error: 'Không có dữ liệu để cập nhật' });
       return;
     }
 
-    const updateQuery = `UPDATE MayTinh SET ${updateFields.join(', ')} WHERE MaMT = @id`;
-    await request.query(updateQuery);
+    updates.push('NgayCapNhat = SYSUTCDATETIME()');
 
-    res.json({ success: true, message: 'Đã cập nhật' });
+    await request.query(`
+      UPDATE MayTinh 
+      SET ${updates.join(', ')}
+      WHERE MaMT = @id
+    `);
+
+    res.json({ success: true, message: 'Cập nhật thành công' });
   } catch (error) {
     console.error('UpdateComputer error:', error);
-    res.status(500).json({ success: false, error: 'Lỗi cập nhật' });
+    res.status(500).json({ success: false, error: 'Lỗi server' });
   }
 }
 
 // ==========================================
-// 5. XÓA MÁY TÍNH
+// 5. LẤY THÔNG TIN MÁY TÍNH CỦA USER HIỆN TẠI
+// ==========================================
+export async function getMyComputer(
+  req: Request,
+  res: Response<ApiResponse<Computer>>
+): Promise<void> {
+  try {
+    console.log('📋 GetMyComputer called', { path: req.path, method: req.method });
+    
+    if (!req.user) {
+      console.log('❌ GetMyComputer: No user in request');
+      res.status(401).json({ success: false, error: 'Chưa xác thực' });
+      return;
+    }
+
+    const pool = await getConnection();
+    const username = req.user.username;
+    console.log('📋 GetMyComputer: username', username);
+
+    // Tìm máy tính có TenNguoiDung trùng với username
+    const result = await pool.request()
+      .input('username', sql.NVarChar, username)
+      .query(`
+        SELECT TOP 1 mt.*, nv.TenNV as TenNguoiDung_NV, k.TenKho
+        FROM MayTinh mt
+        LEFT JOIN NhanVien nv ON mt.MaNV_DangDung = nv.MaNV
+        LEFT JOIN Kho k ON mt.MaKho = k.MaKho
+        WHERE mt.TenNguoiDung = @username
+        ORDER BY mt.NgayCapNhat DESC
+      `);
+
+    if (result.recordset.length === 0) {
+      console.log('📋 GetMyComputer: No computer found for username:', username);
+      res.status(404).json({ 
+        success: false, 
+        error: 'Chưa có thông tin máy tính. Vui lòng tải và chạy công cụ quét trước. Lưu ý: Khi công cụ hỏi "Tên đăng nhập", vui lòng nhập chính xác tên đăng nhập của bạn.' 
+      });
+      return;
+    }
+
+    console.log('📋 GetMyComputer: Found computer:', result.recordset[0].MaMT);
+    res.json({ success: true, data: result.recordset[0] });
+  } catch (error) {
+    console.error('GetMyComputer error:', error);
+    res.status(500).json({ success: false, error: 'Lỗi server' });
+  }
+}
+
+// ==========================================
+// 5.1. CẬP NHẬT MÁY TÍNH CỦA USER HIỆN TẠI (Cho phép user update máy tính của mình)
+// ==========================================
+export async function updateMyComputer(
+  req: Request,
+  res: Response<ApiResponse>
+): Promise<void> {
+  try {
+    console.log('📝 UpdateMyComputer called', { body: req.body });
+    
+    if (!req.user) {
+      res.status(401).json({ success: false, error: 'Chưa xác thực' });
+      return;
+    }
+
+    const pool = await getConnection();
+    const username = req.user.username;
+    const updateData = req.body;
+    
+    console.log('📝 UpdateMyComputer - username:', username, 'updateData:', updateData);
+
+    // Tìm máy tính của user
+    const computerResult = await pool.request()
+      .input('username', sql.NVarChar, username)
+      .query(`
+        SELECT TOP 1 MaMT FROM MayTinh 
+        WHERE TenNguoiDung = @username
+        ORDER BY NgayCapNhat DESC
+      `);
+
+    if (computerResult.recordset.length === 0) {
+      res.status(404).json({ success: false, error: 'Không tìm thấy máy tính của bạn' });
+      return;
+    }
+
+    const maMT = computerResult.recordset[0].MaMT;
+
+    // Build dynamic update query - chỉ cho phép update TinhTrang và DeXuat
+    const updates: string[] = [];
+    const request = pool.request().input('maMT', sql.Int, maMT);
+
+    if (updateData.TinhTrang !== undefined) {
+      updates.push('TinhTrang = @tinhTrang');
+      request.input('tinhTrang', sql.NVarChar, updateData.TinhTrang);
+    }
+    if (updateData.DeXuat !== undefined) {
+      updates.push('DeXuat = @deXuat');
+      request.input('deXuat', sql.NVarChar, updateData.DeXuat);
+    }
+
+    if (updates.length === 0) {
+      res.status(400).json({ success: false, error: 'Không có dữ liệu để cập nhật' });
+      return;
+    }
+
+    updates.push('NgayCapNhat = SYSUTCDATETIME()');
+
+    await request.query(`
+      UPDATE MayTinh 
+      SET ${updates.join(', ')}
+      WHERE MaMT = @maMT
+    `);
+
+    res.json({ success: true, message: 'Cập nhật thành công' });
+  } catch (error) {
+    console.error('UpdateMyComputer error:', error);
+    res.status(500).json({ success: false, error: 'Lỗi server' });
+  }
+}
+
+// ==========================================
+// 6. XÓA MÁY TÍNH
 // ==========================================
 export async function deleteComputer(
   req: Request<{ id: string }>,
@@ -274,10 +423,14 @@ export async function deleteComputer(
   try {
     const { id } = req.params;
     const pool = await getConnection();
-    await pool.request().input('id', sql.Int, parseInt(id)).query('DELETE FROM LichSuQuet WHERE MaMT = @id');
-    await pool.request().input('id', sql.Int, parseInt(id)).query('DELETE FROM MayTinh WHERE MaMT = @id');
-    res.json({ success: true, message: 'Đã xóa máy tính' });
+
+    await pool.request()
+      .input('id', sql.Int, parseInt(id))
+      .query('DELETE FROM MayTinh WHERE MaMT = @id');
+
+    res.json({ success: true, message: 'Xóa thành công' });
   } catch (error) {
-    res.status(500).json({ success: false, error: 'Lỗi xóa máy tính' });
+    console.error('DeleteComputer error:', error);
+    res.status(500).json({ success: false, error: 'Lỗi server' });
   }
 }

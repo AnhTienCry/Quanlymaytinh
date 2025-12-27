@@ -67,33 +67,39 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor - Handle errors
-api.interceptors.response.use(
-  (response: AxiosResponse) => response,
-  (error: AxiosError<{ error?: string; message?: string }>) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-      return Promise.reject(new Error('Phiên đăng nhập đã hết hạn'));
-    }
-    
-    // Network error (không kết nối được server)
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.error('❌ Network Error - API URL:', API_URL);
-      console.error('❌ Error details:', error);
-      return Promise.reject(new Error('Không thể kết nối đến server. Vui lòng kiểm tra Backend Tunnel có đang chạy không.'));
-    }
-    
-    const message = error.response?.data?.error 
-      || error.response?.data?.message 
-      || error.message 
-      || 'Có lỗi xảy ra';
-    
-    return Promise.reject(new Error(message));
-  }
-);
+    // Response interceptor - Handle errors
+    api.interceptors.response.use(
+      (response: AxiosResponse) => response,
+      (error: AxiosError<{ error?: string; message?: string }>) => {
+        // 404 cho /computers/me là trạng thái hợp lệ (chưa có dữ liệu), không throw error
+        if (error.response?.status === 404 && error.config?.url?.includes('/computers/me')) {
+          // Return một response với status 404 để component xử lý
+          return Promise.reject(error);
+        }
+
+        if (error.response?.status === 401) {
+          // Token expired or invalid
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          return Promise.reject(new Error('Phiên đăng nhập đã hết hạn'));
+        }
+        
+        // Network error (không kết nối được server)
+        if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
+          console.error('❌ Network Error - API URL:', API_URL);
+          console.error('❌ Error details:', error);
+          return Promise.reject(new Error('Không thể kết nối đến server. Vui lòng kiểm tra Backend Tunnel có đang chạy không.'));
+        }
+        
+        const message = error.response?.data?.error 
+          || error.response?.data?.message 
+          || error.message 
+          || 'Có lỗi xảy ra';
+        
+        return Promise.reject(new Error(message));
+      }
+    );
 
 // API Response type
 export interface ApiResponse<T = unknown> {
@@ -242,6 +248,12 @@ export const computerApi = {
   getById: (id: number) => 
     api.get<ApiResponse<Computer>>(`/computers/${id}`),
   
+  getMyComputer: () => 
+    api.get<ApiResponse<Computer>>('/computers/me'),
+  
+  updateMyComputer: (data: Partial<Computer>) => 
+    api.put<ApiResponse>('/computers/me', data),
+  
   submitScan: (data: ScanData) => 
     api.post<ApiResponse<{ maMT: number }>>('/computers/scan', data),
   
@@ -250,6 +262,12 @@ export const computerApi = {
   
   delete: (id: number) => 
     api.delete<ApiResponse>(`/computers/${id}`),
+};
+
+// Agent APIs
+export const agentApi = {
+  download: () => 
+    api.get('/agent/download', { responseType: 'blob' }),
 };
 
 // Dashboard APIs

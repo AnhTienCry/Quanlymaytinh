@@ -9,7 +9,7 @@ import { Card, Button, Input, App } from 'antd';
 import useSystemInfo from '../hooks/useSystemInfo';
 import { useAuthStore } from '../stores/authStore';
 import { useNavigate } from 'react-router-dom';
-import { getBackendBaseUrl } from '../services/api';
+import { agentApi } from '../services/api';
 
 export const UserHomePage: React.FC = () => {
   const { message } = App.useApp();
@@ -37,16 +37,32 @@ export const UserHomePage: React.FC = () => {
     // 1. Nếu chưa có tool -> Tải về
     if (agentStatus === 'offline' || agentStatus === 'unknown') {
       try {
-        // Sử dụng helper function để lấy đúng backend URL (hỗ trợ tunnel)
-        const backendBaseUrl = getBackendBaseUrl();
-        const downloadUrl = `${backendBaseUrl}/downloads/CongCuQuetThongTin.exe`;
-        console.log('📥 Download URL:', downloadUrl);
-        window.open(downloadUrl, '_self');
+        message.loading({ content: 'Đang tải công cụ...', key: 'download', duration: 0 });
+        
+        // Sử dụng API endpoint với authentication (tốt hơn static file)
+        const response = await agentApi.download();
+        
+        // Tạo blob URL từ response
+        const blob = new Blob([response.data], { type: 'application/octet-stream' });
+        const url = window.URL.createObjectURL(blob);
+        
+        // Tạo link để download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'CongCuQuetThongTin.exe';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Cleanup blob URL
+        window.URL.revokeObjectURL(url);
+        
+        message.success({ content: 'Tải file thành công! Vui lòng mở file để quét.', key: 'download', duration: 5 });
         setWaitingForUser(true);
-        message.info({ content: 'Đang tải công cụ... Mở file lên để tự động quét!', duration: 5 });
       } catch (err) {
         console.error('Download error:', err);
-        message.error('Lỗi tải file');
+        message.error({ content: 'Lỗi tải file. Vui lòng thử lại.', key: 'download', duration: 5 });
       }
       return;
     }

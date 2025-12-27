@@ -61,6 +61,7 @@ export interface ScanData {
   serialNumber?: string;
   model?: string;
   manufacturer?: string;
+  namSX?: number; // Năm sản xuất
   // Các trường nhập tay
   tinhTrang?: string;
   deXuat?: string;

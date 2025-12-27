@@ -40,7 +40,7 @@ export const LoginPage: React.FC = () => {
       if (currentUser?.role === 'admin') {
         navigate('/dashboard');
       } else {
-        navigate('/user-home');
+        navigate('/tool-intro');
       }
     }
   };

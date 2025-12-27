@@ -3,9 +3,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme, App as AntApp } from 'antd';
 import viVN from 'antd/locale/vi_VN';
 import {
+  HomePage,
   LoginPage,
   RegisterPage,
-  UserHomePage,
+  ToolIntroductionPage,
+  MyComputerPage,
   DashboardPage,
   ComputersPage,
   UsersPage,
@@ -19,7 +21,7 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, token } = useAuthStore();
 
   if (token && user) {
-    return <Navigate to={user.role === 'admin' ? '/dashboard' : '/user-home'} replace />;
+    return <Navigate to={user.role === 'admin' ? '/dashboard' : '/tool-intro'} replace />;
   }
 
   return <>{children}</>;
@@ -29,6 +31,9 @@ const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<HomePage />} />
+
       {/* Auth Routes */}
       <Route
         path="/login"
@@ -49,10 +54,18 @@ const AppRoutes: React.FC = () => {
 
       {/* User Routes */}
       <Route
-        path="/user-home"
+        path="/tool-intro"
         element={
           <ProtectedRoute>
-            <UserHomePage />
+            <ToolIntroductionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-computer"
+        element={
+          <ProtectedRoute>
+            <MyComputerPage />
           </ProtectedRoute>
         }
       />
@@ -92,8 +105,7 @@ const AppRoutes: React.FC = () => {
       />
 
       {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
