@@ -98,37 +98,40 @@ IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'MayTinh')
 BEGIN
     CREATE TABLE MayTinh (
         MaMT INT IDENTITY(1,1) PRIMARY KEY,
-        MaTS NVARCHAR(50) UNIQUE,              -- Mã tài sản
-        TenMT NVARCHAR(100) DEFAULT N'New PC', -- Tên máy (hostname)
-        Model NVARCHAR(100),                   -- Model máy
-        Hang NVARCHAR(100),                    -- Hãng sản xuất (Dell, HP...)
-        NamSX INT,                             -- Năm sản xuất
+        MaTS NVARCHAR(50),             -- ĐÃ BỎ TỪ KHÓA 'UNIQUE' Ở ĐÂY ĐỂ TRÁNH LỖI 1 NULL
+        TenMT NVARCHAR(100) DEFAULT N'New PC', 
+        Model NVARCHAR(100),                  
+        Hang NVARCHAR(100),                    
+        NamSX INT,                             
         CPU NVARCHAR(200),
-        RAM NVARCHAR(50),                      -- Ví dụ: "16 GB"
-        SSD NVARCHAR(200),                     -- Ví dụ: "512 GB NVMe"
-        VGA NVARCHAR(200),                     -- Card đồ họa
-        MAC NVARCHAR(50) NOT NULL UNIQUE,      -- Địa chỉ MAC (Khóa định danh)
-        IPAddress NVARCHAR(45),                -- IP hiện tại
-        SerialNumber NVARCHAR(100),            -- Serial BIOS
-        OS NVARCHAR(100),                      -- Hệ điều hành
+        RAM NVARCHAR(50),                      
+        SSD NVARCHAR(200),                     
+        VGA NVARCHAR(200),                     
+        MAC NVARCHAR(50) NOT NULL UNIQUE,      -- MAC vẫn giữ Unique cứng (bắt buộc phải có và không trùng)
+        IPAddress NVARCHAR(45),                
+        SerialNumber NVARCHAR(100),            
+        OS NVARCHAR(100),                      
         MaKho INT FOREIGN KEY REFERENCES Kho(MaKho),
-        MaNV_DangDung INT FOREIGN KEY REFERENCES NhanVien(MaNV), -- Ai đang dùng
-        TrangThai NVARCHAR(50) DEFAULT N'Trong kho', -- Trong kho, Đang sử dụng, Bảo trì, Thanh lý
-        -- Các trường nhập tay bổ sung
-        TinhTrang NVARCHAR(500),               -- Tình trạng máy (nhập tay)
-        DeXuat NVARCHAR(1000),                 -- Đề xuất (nhập tay)
-        TenNguoiDung NVARCHAR(200),            -- Tên người dùng (nhập tay tạm thời)
+        MaNV_DangDung INT FOREIGN KEY REFERENCES NhanVien(MaNV), 
+        TrangThai NVARCHAR(50) DEFAULT N'Trong kho', 
+        TinhTrang NVARCHAR(500),               
+        DeXuat NVARCHAR(1000),                 
+        TenNguoiDung NVARCHAR(200),            
         NgayTao DATETIME2 DEFAULT SYSUTCDATETIME(),
         NgayCapNhat DATETIME2 DEFAULT SYSUTCDATETIME()
     );
     
     -- Index cho tìm kiếm nhanh
     CREATE INDEX IX_MayTinh_MAC ON MayTinh(MAC);
-    CREATE INDEX IX_MayTinh_MaTS ON MayTinh(MaTS);
+
+    -- TẠO UNIQUE INDEX THÔNG MINH (Cho phép nhiều NULL, nhưng cấm trùng Mã Tài Sản nếu đã nhập)
+    CREATE UNIQUE INDEX IX_MayTinh_MaTS_Unique 
+    ON MayTinh(MaTS) 
+    WHERE MaTS IS NOT NULL;
 END
 ELSE
 BEGIN
-    -- Thêm các cột mới nếu chưa tồn tại
+    -- ... (Giữ nguyên phần thêm cột nếu bảng đã tồn tại) ...
     IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('MayTinh') AND name = 'TinhTrang')
     BEGIN
         ALTER TABLE MayTinh ADD TinhTrang NVARCHAR(500);
